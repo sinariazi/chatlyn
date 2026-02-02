@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ReplyComposer } from "./reply-composer"
+import { MessageSimulator } from "./message-simulator"
 import { format } from "date-fns"
 import { Mail, MessageCircle, Globe, ArrowDownLeft, ArrowUpRight } from "lucide-react"
 
@@ -88,15 +89,21 @@ export function MessagePanel({ conversation, messages, onMessageSent }: MessageP
             {conversation.contactId}
           </p>
         </div>
-        <Badge
-          variant="outline"
-          className={cn("shrink-0", channelColors[conversation.channel])}
-        >
-          {channelIcons[conversation.channel]}
-          <span className="ml-1 text-[10px] uppercase">
-            {conversation.channel}
-          </span>
-        </Badge>
+        <div className="flex items-center gap-2">
+          <MessageSimulator
+            conversationId={conversation.id}
+            onMessageReceived={handleMessageSent}
+          />
+          <Badge
+            variant="outline"
+            className={cn("shrink-0", channelColors[conversation.channel])}
+          >
+            {channelIcons[conversation.channel]}
+            <span className="ml-1 text-[10px] uppercase">
+              {conversation.channel}
+            </span>
+          </Badge>
+        </div>
       </div>
 
       {/* Messages */}
