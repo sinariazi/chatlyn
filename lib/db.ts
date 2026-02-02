@@ -419,6 +419,23 @@ export const prisma = {
       store.messages.set(message.id, message)
       return message
     },
+    createMany: async (args: { data: Array<Omit<Message, "id" | "createdAt"> & { metadata?: Record<string, unknown> | null }> }) => {
+      const messages = args.data.map((data, index) => {
+        const message: Message = {
+          id: `msg-${Date.now()}-${index}`,
+          conversationId: data.conversationId,
+          channel: data.channel,
+          direction: data.direction,
+          content: data.content,
+          contentType: data.contentType || "TEXT",
+          metadata: data.metadata ?? null,
+          createdAt: new Date(),
+        }
+        store.messages.set(message.id, message)
+        return message
+      })
+      return { count: messages.length }
+    },
     count: async (args?: { where?: { direction?: Direction } }) => {
       if (args?.where?.direction) {
         return Array.from(store.messages.values()).filter((m) => m.direction === args.where?.direction).length
@@ -570,6 +587,28 @@ export const prisma = {
       store.events.set(event.id, event)
       return event
     },
+    createMany: async (args: { 
+      data: Array<{
+        type: EventType
+        conversationId?: string | null
+        ruleId?: string | null
+        payload?: Record<string, unknown> | null
+      }>
+    }) => {
+      const events = args.data.map((data, index) => {
+        const event: Event = {
+          id: `evt-${Date.now()}-${index}`,
+          type: data.type,
+          conversationId: data.conversationId ?? null,
+          ruleId: data.ruleId ?? null,
+          payload: data.payload ?? null,
+          createdAt: new Date(),
+        }
+        store.events.set(event.id, event)
+        return event
+      })
+      return { count: events.length }
+    },
     count: async (args?: { 
       where?: { 
         type?: EventType | { in: EventType[] }
@@ -580,7 +619,7 @@ export const prisma = {
       
       if (args?.where?.type) {
         if (typeof args.where.type === "string") {
-          events = events.filter((e) => e.type === args.where.type)
+          events = events.filter((e) => e.type === args.where!.type)
         } else if ("in" in args.where.type) {
           events = events.filter((e) => (args.where?.type as { in: EventType[] }).in.includes(e.type))
         }
@@ -608,6 +647,11 @@ export const prisma = {
         return result
       })
     },
+  },
+  // Prisma client lifecycle methods
+  $disconnect: async () => {
+    // Mock implementation - no actual connection to close
+    return Promise.resolve()
   },
 }
 
