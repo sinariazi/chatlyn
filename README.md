@@ -110,22 +110,103 @@ const { text } = await generateText({
 - CQRS pattern: separate read/write models for inbox
 - CDN-cached analytics dashboards with background refresh
 
+## Mock Data Layer (Current Implementation)
+
+**Status:** Running with in-memory mock database for v0 environment compatibility.
+
+**Implementation:** `lib/db.ts` exports Prisma-compatible API backed by JavaScript Maps. Seed data initializes on first import with 3 conversations, 8 messages, 3 rules, and 12 events.
+
+**Mock vs Real:**
+```typescript
+// Mock (current)
+export const prisma = {
+  conversation: { findMany, findUnique, create, update, ... },
+  message: { findMany, create, groupBy, ... },
+  // ... implements subset of Prisma Client API
+}
+
+// Real (production)
+import { PrismaClient } from '@prisma/client'
+export const prisma = new PrismaClient()
+```
+
+**Migration to Real Data:**
+
+1. **Swap database client** - Replace mock in `lib/db.ts` with actual Prisma client:
+   ```typescript
+   import { PrismaClient } from "@prisma/client"
+   export const prisma = new PrismaClient()
+   ```
+
+2. **Run migrations** - Apply schema to PostgreSQL:
+   ```bash
+   pnpm prisma migrate dev
+   pnpm prisma db seed  # Optional: populate with realistic data
+   ```
+
+3. **Set environment variable** - Add to `.env.local`:
+   ```
+   DATABASE_URL="postgresql://user:pass@localhost:5432/chatlyn"
+   ```
+
+4. **Verify types** - All queries already typed against Prisma schema. No code changes needed beyond `lib/db.ts`.
+
+**No other code changes required.** All queries, actions, and components already use the Prisma-compatible interface.
+
+## AI Integration (Current Implementation)
+
+**Status:** AI SDK configured but requires API key for actual generation. Falls back gracefully without key.
+
+**Current behavior:**
+- **Without API key:** "Suggest reply" button shows "AI service not configured" error
+- **With API key:** Generates contextual replies using GPT-4o-mini via Vercel AI Gateway
+
+**Implementation:** `lib/ai/generateReply.ts` uses Vercel AI SDK 6 with default gateway routing. No provider imports needed.
+
+```typescript
+// Already configured - just needs API key
+const { text } = await generateText({
+  model: "openai/gpt-4o-mini",  // Routes through AI Gateway
+  system: hospitalitySystemPrompt,
+  prompt: conversationHistory,
+})
+```
+
+**Enabling AI Features:**
+
+1. **Add API key** - Create `.env.local`:
+   ```
+   OPENAI_API_KEY="sk-..."
+   ```
+
+2. **Restart dev server** - AI suggestions will work immediately:
+   ```bash
+   pnpm dev
+   ```
+
+**That's it.** No code changes, no provider setup. AI SDK handles routing through Vercel AI Gateway.
+
+**Alternative providers:** To use Anthropic, Groq, or other models, just change the model string:
+```typescript
+model: "anthropic/claude-3-5-sonnet"  // or "groq/llama-3.1-70b"
+```
+
 ## Development
 
 ```bash
 # Install dependencies
 pnpm install
 
-# Set up database
+# (Optional) Set up real database
 pnpm prisma migrate dev
 pnpm prisma db seed
 
-# Run development server
+# Run development server (works with mock data)
 pnpm dev
 ```
 
 **Environment variables:**
-- `DATABASE_URL` - PostgreSQL connection string
+- `DATABASE_URL` - PostgreSQL connection string (optional with mock)
 - `OPENAI_API_KEY` - For AI reply suggestions (optional)
 
 ## License

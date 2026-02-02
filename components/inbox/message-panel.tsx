@@ -1,10 +1,11 @@
 "use client"
 
+import { ScrollArea } from "@/components/ui/scroll-area"
+
 import React, { useState, useEffect, useRef } from "react"
 
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { ReplyComposer } from "./reply-composer"
 import { MessageSimulator } from "./message-simulator"
 import { format } from "date-fns"
@@ -106,8 +107,8 @@ export function MessagePanel({ conversation, messages, onMessageSent }: MessageP
         </div>
       </div>
 
-      {/* Messages */}
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+      {/* Messages - Scrollable Area */}
+      <div className="flex-1 overflow-y-auto p-4" ref={scrollRef}>
         <div className="flex flex-col gap-4">
           {localMessages.map((message) => (
             <div
@@ -149,7 +150,7 @@ export function MessagePanel({ conversation, messages, onMessageSent }: MessageP
             </div>
           ))}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Reply Composer */}
       <ReplyComposer
