@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Conversation represents a thread of messages with a contact
+model Conversation {
+  id        String    @id @default(cuid())
+  contactId String
+  channel   Channel
+  status    ConversationStatus @default(OPEN)
+  subject   String?
+  metadata  Json?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  messages  Message[]
+  events    Event[]
+
+  @@index([contactId])
+  @@index([channel])
+  @@index([status])
+}
+
+// Message represents a single message within a conversation
+model Message {
+  id             String    @id @default(cuid())
+  conversationId String
+  channel        Channel
+  direction      Direction
+  content        String
+  contentType    ContentType @default(TEXT)
+  metadata       Json?
+  createdAt      DateTime  @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([channel])
+  @@index([direction])
+  @@index([createdAt])
+}
+
+// Rule represents an automation rule for processing messages
+model Rule {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  trigger     RuleTrigger
+  conditions  Json
+  actions     Json
+  priority    Int        @default(0)
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  events      Event[]
+
+  @@index([isActive])
+  @@index([trigger])
+}
+
+// Event represents analytics events for tracking and reporting
+model Event {
+  id             String    @id @default(cuid())
+  type           EventType
+  conversationId String?
+  ruleId         String?
+  payload        Json?
+  createdAt      DateTime  @default(now())
+
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  rule           Rule?         @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+
+  @@index([type])
+  @@index([conversationId])
+  @@index([ruleId])
+  @@index([createdAt])
+}
+
+// Enums
+enum Channel {
+  WEB
+  WHATSAPP
+  EMAIL
+}
+
+enum Direction {
+  INCOMING
+  OUTGOING
+}
+
+enum ContentType {
+  TEXT
+  IMAGE
+  FILE
+  AUDIO
+  VIDEO
+}
+
+enum ConversationStatus {
+  OPEN
+  CLOSED
+  PENDING
+  ARCHIVED
+}
+
+enum RuleTrigger {
+  MESSAGE_RECEIVED
+  MESSAGE_SENT
+  CONVERSATION_OPENED
+  CONVERSATION_CLOSED
+  KEYWORD_MATCH
+  SCHEDULE
+}
+
+enum EventType {
+  MESSAGE_RECEIVED
+  MESSAGE_SENT
+  CONVERSATION_STARTED
+  CONVERSATION_RESOLVED
+  RULE_TRIGGERED
+  RULE_EXECUTED
+  AI_RESPONSE_GENERATED
+  AGENT_ASSIGNED
+}
