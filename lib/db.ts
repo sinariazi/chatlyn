@@ -432,7 +432,11 @@ export const prisma = {
     },
   },
   rule: {
-    findMany: async (args?: { where?: { isActive?: boolean }; orderBy?: Record<string, string> }) => {
+    findMany: async (args?: { 
+      where?: { isActive?: boolean }
+      orderBy?: Record<string, string>
+      select?: Record<string, boolean>
+    }) => {
       let rules = Array.from(store.rules.values())
       if (args?.where?.isActive !== undefined) {
         rules = rules.filter((r) => r.isActive === args.where?.isActive)
@@ -442,6 +446,20 @@ export const prisma = {
       } else if (args?.orderBy?.createdAt === "desc") {
         rules.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       }
+      
+      // Handle select
+      if (args?.select) {
+        return rules.map((rule) => {
+          const selected: any = {}
+          for (const key of Object.keys(args.select!)) {
+            if (args.select![key]) {
+              selected[key] = rule[key as keyof Rule]
+            }
+          }
+          return selected
+        })
+      }
+      
       return rules
     },
     findUnique: async (args: { where: { id: string } }) => {
@@ -472,7 +490,13 @@ export const prisma = {
     count: async () => store.rules.size,
   },
   event: {
-    findMany: async (args?: { where?: { type?: EventType | { in: EventType[] } }; orderBy?: Record<string, string> }) => {
+    findMany: async (args?: { 
+      where?: { 
+        type?: EventType | { in: EventType[] }
+        ruleId?: string | null
+      }
+      orderBy?: Record<string, string>
+    }) => {
       let events = Array.from(store.events.values())
       if (args?.where?.type) {
         if (typeof args.where.type === "string") {
@@ -480,6 +504,9 @@ export const prisma = {
         } else if ("in" in args.where.type) {
           events = events.filter((e) => (args.where?.type as { in: EventType[] }).in.includes(e.type))
         }
+      }
+      if (args?.where?.ruleId !== undefined) {
+        events = events.filter((e) => e.ruleId === args.where?.ruleId)
       }
       if (args?.orderBy?.createdAt === "desc") {
         events.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
@@ -505,15 +532,27 @@ export const prisma = {
       store.events.set(event.id, event)
       return event
     },
-    count: async (args?: { where?: { type?: EventType | { in: EventType[] } } }) => {
+    count: async (args?: { 
+      where?: { 
+        type?: EventType | { in: EventType[] }
+        ruleId?: string | null
+      }
+    }) => {
+      let events = Array.from(store.events.values())
+      
       if (args?.where?.type) {
         if (typeof args.where.type === "string") {
-          return Array.from(store.events.values()).filter((e) => e.type === args.where?.type).length
+          events = events.filter((e) => e.type === args.where.type)
         } else if ("in" in args.where.type) {
-          return Array.from(store.events.values()).filter((e) => (args.where?.type as { in: EventType[] }).in.includes(e.type)).length
+          events = events.filter((e) => (args.where?.type as { in: EventType[] }).in.includes(e.type))
         }
       }
-      return store.events.size
+      
+      if (args?.where?.ruleId !== undefined) {
+        events = events.filter((e) => e.ruleId === args.where?.ruleId)
+      }
+      
+      return events.length
     },
     groupBy: async (args: { by: string[]; _count: boolean }) => {
       const events = Array.from(store.events.values())
