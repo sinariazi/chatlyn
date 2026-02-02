@@ -171,7 +171,7 @@ export async function evaluateRulesForMessage(
       try {
         switch (action.type) {
           case "ai_reply": {
-            const reply = await executeAIReply(message)
+            const reply = await executeAIReply(message as MessageWithConversation)
             if (reply) {
               await prisma.message.create({
                 data: {
@@ -198,7 +198,7 @@ export async function evaluateRulesForMessage(
 
           case "template_reply": {
             if (action.template) {
-              const reply = await executeTemplateReply(action.template, message)
+              const reply = await executeTemplateReply(action.template, message as MessageWithConversation)
               await prisma.message.create({
                 data: {
                   conversationId: message.conversationId,

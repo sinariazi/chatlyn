@@ -68,6 +68,9 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
   let responseCount = 0
 
   for (const conversation of conversations) {
+    if (!("messages" in conversation) || !Array.isArray(conversation.messages)) {
+      continue
+    }
     const messages = conversation.messages
     
     for (let i = 0; i < messages.length - 1; i++) {

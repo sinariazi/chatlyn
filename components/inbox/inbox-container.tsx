@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import { ConversationList } from "./conversation-list"
-import { MessagePanel, type Message } from "./message-panel"
-import type { ConversationWithMessages, Conversation } from "@/lib/messaging/types"
+import { MessagePanel, type Message as PanelMessage } from "./message-panel"
+import type { ConversationWithMessages, Message as DbMessage } from "@/lib/messaging/types"
+import { Message } from "@/lib/messaging/types" // Import Message type
 
 interface InboxContainerProps {
   conversations: ConversationWithMessages[]
@@ -16,15 +17,31 @@ export function InboxContainer({ conversations: initialConversations }: InboxCon
   )
 
   const selectedConversation = conversations.find((c) => c.id === selectedId) || null
-  const messages = selectedConversation?.messages || []
+  
+  // Convert database messages to panel messages
+  const messages: PanelMessage[] = selectedConversation?.messages.map((msg) => ({
+    id: msg.id,
+    channel: msg.channel,
+    direction: msg.direction,
+    content: msg.content,
+    createdAt: msg.createdAt,
+  })) || []
 
-  const handleMessageSent = (message: Message) => {
+  const handleMessageSent = (message: PanelMessage) => {
+    // Convert panel message to database message format
+    const dbMessage: DbMessage = {
+      ...message,
+      conversationId: selectedId!,
+      contentType: "TEXT",
+      metadata: null,
+    }
+    
     setConversations((prev) =>
       prev.map((conv) => {
         if (conv.id === selectedId) {
           return {
             ...conv,
-            messages: [...conv.messages, message],
+            messages: [...conv.messages, dbMessage],
             updatedAt: new Date(),
           }
         }

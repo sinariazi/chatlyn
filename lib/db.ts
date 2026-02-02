@@ -538,7 +538,7 @@ export const prisma = {
       let events = Array.from(store.events.values())
       if (args?.where?.type) {
         if (typeof args.where.type === "string") {
-          events = events.filter((e) => e.type === args.where?.type)
+          events = events.filter((e) => e.type === args.where!.type)
         } else if ("in" in args.where.type) {
           events = events.filter((e) => (args.where?.type as { in: EventType[] }).in.includes(e.type))
         }
