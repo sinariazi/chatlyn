@@ -3,36 +3,14 @@
 import { useState } from "react"
 import { ConversationList } from "./conversation-list"
 import { MessagePanel, type Message } from "./message-panel"
-
-type Channel = "WEB" | "WHATSAPP" | "EMAIL"
-type Direction = "INCOMING" | "OUTGOING"
-type ConversationStatus = "OPEN" | "CLOSED" | "PENDING" | "ARCHIVED"
-
-interface ConversationMessage {
-  id: string
-  channel: Channel
-  direction: Direction
-  content: string
-  createdAt: Date
-}
-
-interface Conversation {
-  id: string
-  contactId: string
-  channel: Channel
-  status: ConversationStatus
-  subject: string | null
-  createdAt: Date
-  updatedAt: Date
-  messages: ConversationMessage[]
-}
+import type { ConversationWithMessages, Conversation } from "@/lib/messaging/types"
 
 interface InboxContainerProps {
-  conversations: Conversation[]
+  conversations: ConversationWithMessages[]
 }
 
 export function InboxContainer({ conversations: initialConversations }: InboxContainerProps) {
-  const [conversations, setConversations] = useState<Conversation[]>(initialConversations)
+  const [conversations, setConversations] = useState<ConversationWithMessages[]>(initialConversations)
   const [selectedId, setSelectedId] = useState<string | null>(
     initialConversations[0]?.id || null
   )

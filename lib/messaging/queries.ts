@@ -1,6 +1,7 @@
 import prisma from "@/lib/db"
+import type { ConversationWithMessages } from "./types"
 
-export async function getConversationsWithMessages() {
+export async function getConversationsWithMessages(): Promise<ConversationWithMessages[]> {
   const conversations = await prisma.conversation.findMany({
     orderBy: {
       updatedAt: "desc",
@@ -14,7 +15,7 @@ export async function getConversationsWithMessages() {
     },
   })
 
-  return conversations
+  return conversations as ConversationWithMessages[]
 }
 
 export async function getConversationById(id: string) {
