@@ -1,10 +1,17 @@
 "use server"
 
 import { generateText } from "ai"
-import prisma from "@/lib/db"
+import prisma, { type Message } from "@/lib/db"
 import { trackAISuggestionUsed } from "@/lib/analytics/trackEvent"
 
 const TIMEOUT_MS = 30000
+
+type ConversationWithMessages = {
+  id: string
+  contactId: string
+  channel: string
+  messages: Message[]
+}
 
 interface GenerateReplyResult {
   success: boolean
@@ -70,12 +77,17 @@ export async function generateReplySuggestion(
       return { success: false, error: "Conversation not found" }
     }
 
+    // Type guard to ensure messages exist
+    if (!("messages" in conversation) || !Array.isArray(conversation.messages)) {
+      return { success: false, error: "Could not load conversation messages" }
+    }
+
     if (conversation.messages.length === 0) {
       return { success: false, error: "No messages in conversation" }
     }
 
     const conversationHistory = conversation.messages
-      .map((msg) => {
+      .map((msg: Message) => {
         const role = msg.direction === "INCOMING" ? "Guest" : "Staff"
         return `${role}: ${msg.content}`
       })
@@ -152,9 +164,9 @@ Generate an appropriate reply to the most recent message from the guest.`
           },
         })
 
-        if (conversation && conversation.messages.length > 0) {
+        if (conversation && "messages" in conversation && Array.isArray(conversation.messages) && conversation.messages.length > 0) {
           const conversationHistory = conversation.messages
-            .map((msg) => `${msg.direction === "INCOMING" ? "Guest" : "Staff"}: ${msg.content}`)
+            .map((msg: Message) => `${msg.direction === "INCOMING" ? "Guest" : "Staff"}: ${msg.content}`)
             .join("\n")
           
           const mockSuggestion = getMockSuggestion(conversationHistory)
