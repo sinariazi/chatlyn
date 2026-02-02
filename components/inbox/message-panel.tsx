@@ -1,17 +1,18 @@
 "use client"
 
-import React from "react"
+import React, { useState, useEffect, useRef } from "react"
 
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { ReplyComposer } from "./reply-composer"
 import { format } from "date-fns"
 import { Mail, MessageCircle, Globe, ArrowDownLeft, ArrowUpRight } from "lucide-react"
 
 type Channel = "WEB" | "WHATSAPP" | "EMAIL"
 type Direction = "INCOMING" | "OUTGOING"
 
-interface Message {
+export interface Message {
   id: string
   channel: Channel
   direction: Direction
@@ -29,6 +30,7 @@ interface Conversation {
 interface MessagePanelProps {
   conversation: Conversation | null
   messages: Message[]
+  onMessageSent?: (message: Message) => void
 }
 
 const channelIcons: Record<Channel, React.ReactNode> = {
@@ -43,7 +45,25 @@ const channelColors: Record<Channel, string> = {
   EMAIL: "bg-amber-500/10 text-amber-600 border-amber-200",
 }
 
-export function MessagePanel({ conversation, messages }: MessagePanelProps) {
+export function MessagePanel({ conversation, messages, onMessageSent }: MessagePanelProps) {
+  const [localMessages, setLocalMessages] = useState<Message[]>(messages)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setLocalMessages(messages)
+  }, [messages])
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [localMessages])
+
+  const handleMessageSent = (message: Message) => {
+    setLocalMessages((prev) => [...prev, message])
+    onMessageSent?.(message)
+  }
+
   if (!conversation) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -80,9 +100,9 @@ export function MessagePanel({ conversation, messages }: MessagePanelProps) {
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4">
+      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
         <div className="flex flex-col gap-4">
-          {messages.map((message) => (
+          {localMessages.map((message) => (
             <div
               key={message.id}
               className={cn(
@@ -123,6 +143,12 @@ export function MessagePanel({ conversation, messages }: MessagePanelProps) {
           ))}
         </div>
       </ScrollArea>
+
+      {/* Reply Composer */}
+      <ReplyComposer
+        conversationId={conversation.id}
+        onMessageSent={handleMessageSent}
+      />
     </div>
   )
 }

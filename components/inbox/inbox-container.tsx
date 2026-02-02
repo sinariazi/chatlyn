@@ -2,13 +2,13 @@
 
 import { useState } from "react"
 import { ConversationList } from "./conversation-list"
-import { MessagePanel } from "./message-panel"
+import { MessagePanel, type Message } from "./message-panel"
 
 type Channel = "WEB" | "WHATSAPP" | "EMAIL"
 type Direction = "INCOMING" | "OUTGOING"
 type ConversationStatus = "OPEN" | "CLOSED" | "PENDING" | "ARCHIVED"
 
-interface Message {
+interface ConversationMessage {
   id: string
   channel: Channel
   direction: Direction
@@ -24,20 +24,36 @@ interface Conversation {
   subject: string | null
   createdAt: Date
   updatedAt: Date
-  messages: Message[]
+  messages: ConversationMessage[]
 }
 
 interface InboxContainerProps {
   conversations: Conversation[]
 }
 
-export function InboxContainer({ conversations }: InboxContainerProps) {
+export function InboxContainer({ conversations: initialConversations }: InboxContainerProps) {
+  const [conversations, setConversations] = useState<Conversation[]>(initialConversations)
   const [selectedId, setSelectedId] = useState<string | null>(
-    conversations[0]?.id || null
+    initialConversations[0]?.id || null
   )
 
   const selectedConversation = conversations.find((c) => c.id === selectedId) || null
   const messages = selectedConversation?.messages || []
+
+  const handleMessageSent = (message: Message) => {
+    setConversations((prev) =>
+      prev.map((conv) => {
+        if (conv.id === selectedId) {
+          return {
+            ...conv,
+            messages: [...conv.messages, message],
+            updatedAt: new Date(),
+          }
+        }
+        return conv
+      })
+    )
+  }
 
   return (
     <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-lg border bg-card">
@@ -63,6 +79,7 @@ export function InboxContainer({ conversations }: InboxContainerProps) {
         <MessagePanel
           conversation={selectedConversation}
           messages={messages}
+          onMessageSent={handleMessageSent}
         />
       </div>
     </div>
