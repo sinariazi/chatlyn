@@ -92,6 +92,8 @@ export function RuleForm({ rule, open, onOpenChange }: RuleFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
+    console.log("[v0] Rule form submit", { name, keywords, actionType, template })
+
     if (!name.trim() || keywords.length === 0) return
 
     const conditions: RuleCondition[] = keywords.map((keyword) => ({
@@ -267,6 +269,15 @@ export function RuleForm({ rule, open, onOpenChange }: RuleFormProps) {
             <Button
               type="submit"
               disabled={!name.trim() || keywords.length === 0 || isPending}
+              onClick={() => {
+                console.log("[v0] Button click - validation:", {
+                  nameValid: !!name.trim(),
+                  keywordsValid: keywords.length > 0,
+                  name,
+                  keywords,
+                  isPending,
+                })
+              }}
             >
               {isPending ? (
                 <>
