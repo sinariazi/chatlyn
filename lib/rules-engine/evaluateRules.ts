@@ -2,7 +2,12 @@
 
 import { generateText } from "ai"
 import prisma from "@/lib/db"
-import type { Rule as PrismaRule, Message, Conversation } from "@prisma/client"
+import type { Message, Conversation } from "@prisma/client"
+import {
+  trackRuleTriggered,
+  trackRuleExecuted,
+  trackAISuggestionUsed,
+} from "@/lib/analytics/trackEvent"
 
 export interface RuleCondition {
   type: "keyword" | "contains" | "startsWith" | "endsWith" | "regex"
@@ -134,14 +139,13 @@ export async function evaluateRulesForMessage(
       continue
     }
 
-    await prisma.event.create({
-      data: {
-        type: "RULE_TRIGGERED",
-        conversationId: message.conversationId,
-        ruleId: rule.id,
-        payload: { messageId, conditions },
-      },
-    })
+    // Track rule triggered event
+    await trackRuleTriggered(
+      message.conversationId,
+      rule.id,
+      rule.name,
+      messageId
+    )
 
     const executedActions: string[] = []
     let generatedReply: string | undefined
@@ -166,14 +170,12 @@ export async function evaluateRulesForMessage(
               generatedReply = reply
               executedActions.push("ai_reply")
 
-              await prisma.event.create({
-                data: {
-                  type: "AI_RESPONSE_GENERATED",
-                  conversationId: message.conversationId,
-                  ruleId: rule.id,
-                  payload: { messageId, reply },
-                },
-              })
+              // Track AI suggestion used via rule
+              await trackAISuggestionUsed(
+                message.conversationId,
+                reply,
+                "rule"
+              )
             }
             break
           }
@@ -216,14 +218,13 @@ export async function evaluateRulesForMessage(
       }
     }
 
-    await prisma.event.create({
-      data: {
-        type: "RULE_EXECUTED",
-        conversationId: message.conversationId,
-        ruleId: rule.id,
-        payload: { messageId, actionsExecuted: executedActions },
-      },
-    })
+    // Track rule executed event
+    await trackRuleExecuted(
+      message.conversationId,
+      rule.id,
+      rule.name,
+      executedActions
+    )
 
     results.push({
       ruleId: rule.id,

@@ -2,6 +2,7 @@
 
 import { generateText } from "ai"
 import prisma from "@/lib/db"
+import { trackAISuggestionUsed } from "@/lib/analytics/trackEvent"
 
 const TIMEOUT_MS = 30000
 
@@ -77,7 +78,12 @@ Generate an appropriate reply to the most recent message from the guest.`
         return { success: false, error: "AI returned empty response" }
       }
 
-      return { success: true, suggestion: text.trim() }
+      const suggestion = text.trim()
+
+      // Track AI suggestion generated
+      await trackAISuggestionUsed(conversationId, suggestion, "manual")
+
+      return { success: true, suggestion }
     } catch (error) {
       clearTimeout(timeoutId)
       

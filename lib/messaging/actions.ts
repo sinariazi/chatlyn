@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { evaluateRulesForMessage } from "@/lib/rules-engine/evaluateRules"
+import { trackMessageSent, trackMessageReceived } from "@/lib/analytics/trackEvent"
 
 interface SendMessageInput {
   conversationId: string
@@ -38,16 +39,8 @@ export async function sendMessage({ conversationId, content }: SendMessageInput)
     data: { updatedAt: new Date() },
   })
 
-  await prisma.event.create({
-    data: {
-      type: "MESSAGE_SENT",
-      conversationId,
-      payload: {
-        messageId: message.id,
-        channel: conversation.channel,
-      },
-    },
-  })
+  // Track message sent event
+  await trackMessageSent(conversationId, message.id, conversation.channel)
 
   revalidatePath("/inbox", "page")
 
@@ -88,16 +81,8 @@ export async function receiveMessage({ conversationId, content }: ReceiveMessage
     data: { updatedAt: new Date() },
   })
 
-  await prisma.event.create({
-    data: {
-      type: "MESSAGE_RECEIVED",
-      conversationId,
-      payload: {
-        messageId: message.id,
-        channel: conversation.channel,
-      },
-    },
-  })
+  // Track message received event
+  await trackMessageReceived(conversationId, message.id, conversation.channel)
 
   // Evaluate rules for incoming message
   const ruleResults = await evaluateRulesForMessage(message.id)
