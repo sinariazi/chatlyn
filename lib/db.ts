@@ -419,7 +419,12 @@ export const prisma = {
       store.messages.set(message.id, message)
       return message
     },
-    createMany: async (args: { data: Array<Omit<Message, "id" | "createdAt"> & { metadata?: Record<string, unknown> | null }> }) => {
+    createMany: async (args: { 
+      data: Array<Omit<Message, "id"> & { 
+        metadata?: Record<string, unknown> | null
+        createdAt?: Date
+      }> 
+    }) => {
       const messages = args.data.map((data, index) => {
         const message: Message = {
           id: `msg-${Date.now()}-${index}`,
@@ -429,7 +434,7 @@ export const prisma = {
           content: data.content,
           contentType: data.contentType || "TEXT",
           metadata: data.metadata ?? null,
-          createdAt: new Date(),
+          createdAt: data.createdAt ?? new Date(),
         }
         store.messages.set(message.id, message)
         return message
@@ -593,6 +598,7 @@ export const prisma = {
         conversationId?: string | null
         ruleId?: string | null
         payload?: Record<string, unknown> | null
+        createdAt?: Date
       }>
     }) => {
       const events = args.data.map((data, index) => {
@@ -602,7 +608,7 @@ export const prisma = {
           conversationId: data.conversationId ?? null,
           ruleId: data.ruleId ?? null,
           payload: data.payload ?? null,
-          createdAt: new Date(),
+          createdAt: data.createdAt ?? new Date(),
         }
         store.events.set(event.id, event)
         return event
