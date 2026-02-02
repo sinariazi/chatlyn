@@ -2,13 +2,20 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import type { LucideIcon } from "lucide-react"
+import { MessageSquare, Bot, Zap, Clock } from "lucide-react"
+
+const iconMap = {
+  messageSquare: MessageSquare,
+  bot: Bot,
+  zap: Zap,
+  clock: Clock,
+} as const
 
 interface StatCardProps {
   title: string
   value: string | number
   description?: string
-  icon?: LucideIcon
+  icon?: keyof typeof iconMap
   trend?: {
     value: number
     isPositive: boolean
@@ -20,10 +27,12 @@ export function StatCard({
   title,
   value,
   description,
-  icon: Icon,
+  icon,
   trend,
   className,
 }: StatCardProps) {
+  const Icon = icon ? iconMap[icon] : null
+
   return (
     <Card className={cn("", className)}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -35,16 +44,17 @@ export function StatCard({
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
         {description && (
-          <p className="text-xs text-muted-foreground mt-1">{description}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{description}</p>
         )}
         {trend && (
           <p
             className={cn(
-              "text-xs mt-1",
+              "mt-1 text-xs",
               trend.isPositive ? "text-emerald-600" : "text-rose-600"
             )}
           >
-            {trend.isPositive ? "+" : "-"}{Math.abs(trend.value)}% from last period
+            {trend.isPositive ? "+" : "-"}
+            {Math.abs(trend.value)}% from last period
           </p>
         )}
       </CardContent>
