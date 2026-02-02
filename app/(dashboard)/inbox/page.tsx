@@ -1,14 +1,17 @@
 import { PageHeader } from "@/components/dashboard/page-header"
-import { PlaceholderContent } from "@/components/dashboard/placeholder-content"
+import { InboxContainer } from "@/components/inbox/inbox-container"
+import { getConversationsWithMessages } from "@/lib/messaging/queries"
 
-export default function InboxPage() {
+export default async function InboxPage() {
+  const conversations = await getConversationsWithMessages()
+
   return (
-    <div className="flex flex-col">
-      <PageHeader 
-        title="Inbox" 
-        description="View and manage your messages" 
+    <div className="flex flex-col gap-4">
+      <PageHeader
+        title="Inbox"
+        description="View and manage your messages"
       />
-      <PlaceholderContent feature="Inbox" />
+      <InboxContainer conversations={conversations} />
     </div>
   )
 }
