@@ -319,10 +319,33 @@ export const prisma = {
       
       return conversation
     },
-    findFirst: async (args: { where: { contactId: string; channel: Channel } }) => {
-      return Array.from(store.conversations.values()).find(
+    findFirst: async (args: { 
+      where: { 
+        contactId: string
+        channel: Channel
+        status?: { in: ConversationStatus[] }
+      }
+      orderBy?: Record<string, string>
+    }) => {
+      let conversations = Array.from(store.conversations.values()).filter(
         (c) => c.contactId === args.where.contactId && c.channel === args.where.channel
-      ) || null
+      )
+      
+      // Filter by status if provided
+      if (args.where.status?.in) {
+        conversations = conversations.filter((c) => 
+          args.where.status!.in.includes(c.status)
+        )
+      }
+      
+      // Sort if orderBy provided
+      if (args.orderBy?.updatedAt === "desc") {
+        conversations.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+      } else if (args.orderBy?.updatedAt === "asc") {
+        conversations.sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime())
+      }
+      
+      return conversations[0] || null
     },
     create: async (args: { data: Omit<Conversation, "id" | "createdAt" | "updatedAt"> & { id?: string } }) => {
       const conversation: Conversation = {
@@ -463,13 +486,20 @@ export const prisma = {
       }
       return events
     },
-    create: async (args: { data: Omit<Event, "id" | "createdAt"> }) => {
+    create: async (args: { 
+      data: Omit<Event, "id" | "createdAt"> | {
+        type: EventType
+        conversationId?: string | null
+        ruleId?: string | null
+        payload?: Record<string, unknown> | null
+      }
+    }) => {
       const event: Event = {
         id: `evt-${Date.now()}`,
         type: args.data.type,
-        conversationId: args.data.conversationId ?? null,
-        ruleId: args.data.ruleId ?? null,
-        payload: args.data.payload ?? null,
+        conversationId: ("conversationId" in args.data ? args.data.conversationId : null) ?? null,
+        ruleId: ("ruleId" in args.data ? args.data.ruleId : null) ?? null,
+        payload: ("payload" in args.data ? args.data.payload : null) ?? null,
         createdAt: new Date(),
       }
       store.events.set(event.id, event)
