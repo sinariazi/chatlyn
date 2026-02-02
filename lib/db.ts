@@ -371,7 +371,12 @@ export const prisma = {
     count: async () => store.conversations.size,
   },
   message: {
-    findMany: async (args?: { where?: { conversationId?: string; createdAt?: { gte?: Date } }; orderBy?: Record<string, string>; select?: Record<string, boolean> }) => {
+    findMany: async (args?: { 
+      where?: { conversationId?: string; createdAt?: { gte?: Date } }
+      orderBy?: Record<string, string>
+      select?: Record<string, boolean>
+      take?: number
+    }) => {
       let messages = Array.from(store.messages.values())
       if (args?.where?.conversationId) {
         messages = messages.filter((m) => m.conversationId === args.where?.conversationId)
@@ -384,6 +389,12 @@ export const prisma = {
       } else if (args?.orderBy?.createdAt === "desc") {
         messages.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       }
+      
+      // Apply take limit
+      if (args?.take) {
+        messages = messages.slice(0, args.take)
+      }
+      
       return messages
     },
     findUnique: async (args: { where: { id: string }; include?: { conversation?: boolean } }) => {
@@ -433,13 +444,19 @@ export const prisma = {
   },
   rule: {
     findMany: async (args?: { 
-      where?: { isActive?: boolean }
+      where?: { 
+        isActive?: boolean
+        trigger?: { in: RuleTrigger[] }
+      }
       orderBy?: Record<string, string> | Array<Record<string, string>>
       select?: Record<string, boolean>
     }) => {
       let rules = Array.from(store.rules.values())
       if (args?.where?.isActive !== undefined) {
         rules = rules.filter((r) => r.isActive === args.where?.isActive)
+      }
+      if (args?.where?.trigger?.in) {
+        rules = rules.filter((r) => args.where!.trigger!.in.includes(r.trigger))
       }
       
       // Handle orderBy (single object or array)
