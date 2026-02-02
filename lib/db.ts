@@ -307,10 +307,13 @@ export const prisma = {
     count: async () => store.conversations.size,
   },
   message: {
-    findMany: async (args?: { where?: { conversationId?: string }; orderBy?: Record<string, string> }) => {
+    findMany: async (args?: { where?: { conversationId?: string; createdAt?: { gte?: Date } }; orderBy?: Record<string, string>; select?: Record<string, boolean> }) => {
       let messages = Array.from(store.messages.values())
       if (args?.where?.conversationId) {
         messages = messages.filter((m) => m.conversationId === args.where?.conversationId)
+      }
+      if (args?.where?.createdAt?.gte) {
+        messages = messages.filter((m) => m.createdAt >= args.where!.createdAt!.gte!)
       }
       if (args?.orderBy?.createdAt === "asc") {
         messages.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
@@ -342,6 +345,22 @@ export const prisma = {
         return Array.from(store.messages.values()).filter((m) => m.direction === args.where?.direction).length
       }
       return store.messages.size
+    },
+    groupBy: async (args: { by: string[]; _count: { id: boolean } }) => {
+      const messages = Array.from(store.messages.values())
+      const grouped = new Map<string, number>()
+      for (const message of messages) {
+        const key = args.by.map((k) => message[k as keyof Message]).join("-")
+        grouped.set(key, (grouped.get(key) || 0) + 1)
+      }
+      return Array.from(grouped.entries()).map(([key, count]) => {
+        const values = key.split("-")
+        const result: Record<string, unknown> = { _count: { id: count } }
+        args.by.forEach((k, i) => {
+          result[k] = values[i]
+        })
+        return result
+      })
     },
   },
   rule: {
