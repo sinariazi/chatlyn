@@ -110,22 +110,65 @@ const { text } = await generateText({
 - CQRS pattern: separate read/write models for inbox
 - CDN-cached analytics dashboards with background refresh
 
+## Mock Data Layer (Current Implementation)
+
+**Status:** Running with in-memory mock database for v0 environment compatibility.
+
+**Implementation:** `lib/db.ts` exports Prisma-compatible API backed by JavaScript Maps. Seed data initializes on first import with 3 conversations, 8 messages, 3 rules, and 12 events.
+
+**Mock vs Real:**
+```typescript
+// Mock (current)
+export const prisma = {
+  conversation: { findMany, findUnique, create, update, ... },
+  message: { findMany, create, groupBy, ... },
+  // ... implements subset of Prisma Client API
+}
+
+// Real (production)
+import { PrismaClient } from '@prisma/client'
+export const prisma = new PrismaClient()
+```
+
+**Migration to Real Data:**
+
+1. **Swap database client** - Replace mock in `lib/db.ts` with actual Prisma client:
+   ```typescript
+   import { PrismaClient } from "@prisma/client"
+   export const prisma = new PrismaClient()
+   ```
+
+2. **Run migrations** - Apply schema to PostgreSQL:
+   ```bash
+   pnpm prisma migrate dev
+   pnpm prisma db seed  # Optional: populate with realistic data
+   ```
+
+3. **Set environment variable** - Add to `.env.local`:
+   ```
+   DATABASE_URL="postgresql://user:pass@localhost:5432/chatlyn"
+   ```
+
+4. **Verify types** - All queries already typed against Prisma schema. No code changes needed beyond `lib/db.ts`.
+
+**No other code changes required.** All queries, actions, and components already use the Prisma-compatible interface.
+
 ## Development
 
 ```bash
 # Install dependencies
 pnpm install
 
-# Set up database
+# (Optional) Set up real database
 pnpm prisma migrate dev
 pnpm prisma db seed
 
-# Run development server
+# Run development server (works with mock data)
 pnpm dev
 ```
 
 **Environment variables:**
-- `DATABASE_URL` - PostgreSQL connection string
+- `DATABASE_URL` - PostgreSQL connection string (optional with mock)
 - `OPENAI_API_KEY` - For AI reply suggestions (optional)
 
 ## License
