@@ -279,8 +279,41 @@ export const prisma = {
       }
       return conversations
     },
-    findUnique: async (args: { where: { id: string }; select?: Record<string, boolean> }) => {
-      return store.conversations.get(args.where.id) || null
+    findUnique: async (args: { 
+      where: { id: string }
+      select?: Record<string, boolean>
+      include?: { 
+        messages?: boolean | { 
+          orderBy?: Record<string, string>
+          take?: number
+        } 
+      }
+    }) => {
+      const conversation = store.conversations.get(args.where.id)
+      if (!conversation) return null
+      
+      if (args.include?.messages) {
+        let messages = Array.from(store.messages.values()).filter(
+          (m) => m.conversationId === conversation.id
+        )
+        
+        // Handle nested query options
+        if (typeof args.include.messages === 'object') {
+          if (args.include.messages.orderBy?.createdAt === "asc") {
+            messages.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+          } else if (args.include.messages.orderBy?.createdAt === "desc") {
+            messages.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+          }
+          
+          if (args.include.messages.take) {
+            messages = messages.slice(0, args.include.messages.take)
+          }
+        }
+        
+        return { ...conversation, messages }
+      }
+      
+      return conversation
     },
     findFirst: async (args: { where: { contactId: string; channel: Channel } }) => {
       return Array.from(store.conversations.values()).find(
