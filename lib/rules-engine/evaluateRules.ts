@@ -125,11 +125,14 @@ export async function evaluateRulesForMessage(
     const conditions = rule.conditions as RuleCondition[]
     const actions = rule.actions as RuleAction[]
 
-    const allConditionsMatch = conditions.every((condition) =>
-      matchesCondition(message.content, condition)
-    )
+    // For keyword matching, ANY condition can match (OR logic)
+    // For other rule types, ALL conditions must match (AND logic)
+    const isKeywordRule = rule.trigger === "KEYWORD_MATCH"
+    const conditionsMatch = isKeywordRule
+      ? conditions.some((condition) => matchesCondition(message.content, condition))
+      : conditions.every((condition) => matchesCondition(message.content, condition))
 
-    if (!allConditionsMatch) {
+    if (!conditionsMatch) {
       results.push({
         ruleId: rule.id,
         ruleName: rule.name,
