@@ -79,7 +79,7 @@ export function ReplyComposer({ conversationId, onMessageSent }: ReplyComposerPr
   }
 
   return (
-    <form onSubmit={handleSubmit} className="border-t p-4">
+    <form onSubmit={handleSubmit} className="shrink-0 border-t bg-background p-4">
       <div className="mb-2 flex items-center justify-between">
         <Button
           type="button"
