@@ -43,6 +43,7 @@ async function main() {
         direction: "INCOMING",
         content: "Hi, I have a question about your pricing plans.",
         contentType: "TEXT",
+        metadata: null,
         createdAt: new Date(Date.now() - 3600000), // 1 hour ago
       },
       {
@@ -51,6 +52,7 @@ async function main() {
         direction: "OUTGOING",
         content: "Hello! I'd be happy to help you with pricing information. Which plan are you interested in?",
         contentType: "TEXT",
+        metadata: null,
         createdAt: new Date(Date.now() - 3500000),
       },
       {
@@ -59,6 +61,7 @@ async function main() {
         direction: "INCOMING",
         content: "I'm looking at the Pro plan. Does it include API access?",
         contentType: "TEXT",
+        metadata: null,
         createdAt: new Date(Date.now() - 3400000),
       },
     ],
@@ -73,6 +76,7 @@ async function main() {
         direction: "INCOMING",
         content: "Hello, is anyone there?",
         contentType: "TEXT",
+        metadata: null,
         createdAt: new Date(Date.now() - 1800000), // 30 mins ago
       },
       {
@@ -81,6 +85,7 @@ async function main() {
         direction: "OUTGOING",
         content: "Hi there! Yes, how can I assist you today?",
         contentType: "TEXT",
+        metadata: null,
         createdAt: new Date(Date.now() - 1700000),
       },
     ],
@@ -95,6 +100,7 @@ async function main() {
         direction: "INCOMING",
         content: "Dear Support,\n\nI placed an order #12345 last week but haven't received any shipping confirmation. Could you please check the status?\n\nThank you,\nJohn",
         contentType: "TEXT",
+        metadata: null,
         createdAt: new Date(Date.now() - 86400000), // 1 day ago
       },
     ],
