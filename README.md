@@ -26,6 +26,7 @@ Replace fragmented guest communication with a single, automation-first inbox tha
 │                     Prisma + PostgreSQL                          │
 │  Conversation → Message → Event ← Rule                           │
 └─────────────────────────────────────────────────────────────────┘
+This structure intentionally keeps domain logic isolated from framework concerns to make architectural decisions explicit, reviewable, and enforceable at scale.
 ```
 
 **Data Flow (Incoming Message):**
