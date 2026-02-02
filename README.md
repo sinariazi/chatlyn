@@ -98,7 +98,7 @@ const { text } = await generateText({
 | **Real-time** | Manual refresh | WebSocket/SSE for live updates, Pusher/Ably |
 | **Rules Engine** | In-process evaluation | Background jobs (Inngest/Trigger.dev), rule prioritization queue |
 | **AI** | Sync generation | Streaming responses, response caching, fallback models |
-Cost controls | per-org AI quotas, caching of frequent intents, and tier-based model selection |
+**Cost controls** | per-org AI quotas | caching of frequent intents, and tier-based model selection |
 | **Analytics** | Live aggregation | Pre-computed rollups, time-series DB (TimescaleDB) |
 | **Search** | DB queries | Full-text search (Postgres FTS → Elasticsearch) |
 | **Multi-tenancy** | None | Org/workspace isolation, RLS policies |
