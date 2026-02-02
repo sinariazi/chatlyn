@@ -8,7 +8,7 @@ Replace fragmented guest communication with a single, automation-first inbox tha
 
 ## Architecture Overview
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────────────┐
 │                         Next.js App Router                       │
 ├─────────────────────────────────────────────────────────────────┤
@@ -27,7 +27,7 @@ Replace fragmented guest communication with a single, automation-first inbox tha
 │  Conversation → Message → Event ← Rule                           │
 └─────────────────────────────────────────────────────────────────┘
 This structure intentionally keeps domain logic isolated from framework concerns to make architectural decisions explicit, reviewable, and enforceable at scale.
-```
+\`\`\`
 
 **Data Flow (Incoming Message):**
 1. External system POSTs to `/api/messages/incoming`
@@ -65,7 +65,7 @@ This structure intentionally keeps domain logic isolated from framework concerns
 - 30-second timeout via `AbortController`
 - Graceful degradation: AI failure doesn't block manual reply
 
-```typescript
+\`\`\`typescript
 // lib/ai/generateReply.ts
 const { text } = await generateText({
   model: "openai/gpt-4o-mini",
@@ -73,7 +73,7 @@ const { text } = await generateText({
   messages: conversationHistory,
   abortSignal: AbortSignal.timeout(30000),
 })
-```
+\`\`\`
 
 ## Tradeoffs Made
 
@@ -117,7 +117,7 @@ const { text } = await generateText({
 **Implementation:** `lib/db.ts` exports Prisma-compatible API backed by JavaScript Maps. Seed data initializes on first import with 3 conversations, 8 messages, 3 rules, and 12 events.
 
 **Mock vs Real:**
-```typescript
+\`\`\`typescript
 // Mock (current)
 export const prisma = {
   conversation: { findMany, findUnique, create, update, ... },
@@ -128,26 +128,26 @@ export const prisma = {
 // Real (production)
 import { PrismaClient } from '@prisma/client'
 export const prisma = new PrismaClient()
-```
+\`\`\`
 
 **Migration to Real Data:**
 
 1. **Swap database client** - Replace mock in `lib/db.ts` with actual Prisma client:
-   ```typescript
+   \`\`\`typescript
    import { PrismaClient } from "@prisma/client"
    export const prisma = new PrismaClient()
-   ```
+   \`\`\`
 
 2. **Run migrations** - Apply schema to PostgreSQL:
-   ```bash
+   \`\`\`bash
    pnpm prisma migrate dev
    pnpm prisma db seed  # Optional: populate with realistic data
-   ```
+   \`\`\`
 
 3. **Set environment variable** - Add to `.env.local`:
-   ```
+   \`\`\`
    DATABASE_URL="postgresql://user:pass@localhost:5432/chatlyn"
-   ```
+   \`\`\`
 
 4. **Verify types** - All queries already typed against Prisma schema. No code changes needed beyond `lib/db.ts`.
 
@@ -163,37 +163,37 @@ export const prisma = new PrismaClient()
 
 **Implementation:** `lib/ai/generateReply.ts` uses Vercel AI SDK 6 with default gateway routing. No provider imports needed.
 
-```typescript
+\`\`\`typescript
 // Already configured - just needs API key
 const { text } = await generateText({
   model: "openai/gpt-4o-mini",  // Routes through AI Gateway
   system: hospitalitySystemPrompt,
   prompt: conversationHistory,
 })
-```
+\`\`\`
 
 **Enabling AI Features:**
 
 1. **Add API key** - Create `.env.local`:
-   ```
+   \`\`\`
    OPENAI_API_KEY="sk-..."
-   ```
+   \`\`\`
 
 2. **Restart dev server** - AI suggestions will work immediately:
-   ```bash
+   \`\`\`bash
    pnpm dev
-   ```
+   \`\`\`
 
 **That's it.** No code changes, no provider setup. AI SDK handles routing through Vercel AI Gateway.
 
 **Alternative providers:** To use Anthropic, Groq, or other models, just change the model string:
-```typescript
+\`\`\`typescript
 model: "anthropic/claude-3-5-sonnet"  // or "groq/llama-3.1-70b"
-```
+\`\`\`
 
 ## Development
 
-```bash
+\`\`\`bash
 # Install dependencies
 pnpm install
 
@@ -203,7 +203,7 @@ pnpm prisma db seed
 
 # Run development server (works with mock data)
 pnpm dev
-```
+\`\`\`
 
 **Environment variables:**
 - `DATABASE_URL` - PostgreSQL connection string (optional with mock)

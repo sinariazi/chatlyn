@@ -96,13 +96,23 @@ Generate an appropriate reply to the most recent message from the guest.`
     console.error("Error generating reply suggestion:", error)
     
     if (error instanceof Error) {
-      if (error.message.includes("API key")) {
-        return { success: false, error: "AI service not configured" }
+      // Check for authentication/API key errors
+      if (error.message.includes("Unauthenticated") || 
+          error.message.includes("API key") || 
+          error.message.includes("AI_GATEWAY_API_KEY")) {
+        return { 
+          success: false, 
+          error: "AI suggestions require an OpenAI API key. Add OPENAI_API_KEY to your environment variables." 
+        }
       }
+      
+      // Check for rate limit errors
       if (error.message.includes("rate limit")) {
         return { success: false, error: "Too many requests. Please wait a moment." }
       }
-      return { success: false, error: error.message }
+      
+      // Generic error message for other errors
+      return { success: false, error: `AI service error: ${error.message}` }
     }
     
     return { success: false, error: "Failed to generate suggestion" }
