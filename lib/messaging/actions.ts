@@ -31,6 +31,7 @@ export async function sendMessage({ conversationId, content }: SendMessageInput)
       direction: "OUTGOING",
       content: content.trim(),
       contentType: "TEXT",
+      metadata: null,
     },
   })
 
@@ -73,6 +74,7 @@ export async function receiveMessage({ conversationId, content }: ReceiveMessage
       direction: "INCOMING",
       content: content.trim(),
       contentType: "TEXT",
+      metadata: null,
     },
   })
 

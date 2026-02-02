@@ -6,6 +6,7 @@ import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Send, Loader2, Sparkles } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { sendMessage } from "@/lib/messaging/actions"
 import { generateReplySuggestion } from "@/lib/ai/generateReply"
 
@@ -25,6 +26,7 @@ export function ReplyComposer({ conversationId, onMessageSent }: ReplyComposerPr
   const [isPending, startTransition] = useTransition()
   const [isGenerating, setIsGenerating] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
+  const [isMockSuggestion, setIsMockSuggestion] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,12 +64,14 @@ export function ReplyComposer({ conversationId, onMessageSent }: ReplyComposerPr
 
     setIsGenerating(true)
     setAiError(null)
+    setIsMockSuggestion(false)
 
     try {
       const result = await generateReplySuggestion(conversationId)
 
       if (result.success && result.suggestion) {
         setContent(result.suggestion)
+        setIsMockSuggestion(result.isMock || false)
       } else {
         setAiError(result.error || "Failed to generate suggestion")
       }
@@ -81,21 +85,28 @@ export function ReplyComposer({ conversationId, onMessageSent }: ReplyComposerPr
   return (
     <form onSubmit={handleSubmit} className="shrink-0 border-t bg-background p-4">
       <div className="mb-2 flex items-center justify-between">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleSuggestReply}
-          disabled={isGenerating || isPending}
-          className="gap-2 bg-transparent"
-        >
-          {isGenerating ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Sparkles className="h-4 w-4" />
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleSuggestReply}
+            disabled={isGenerating || isPending}
+            className="gap-2 bg-transparent"
+          >
+            {isGenerating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {isGenerating ? "Generating..." : "Suggest reply"}
+          </Button>
+          {isMockSuggestion && (
+            <Badge variant="outline" className="text-[10px]">
+              Demo Mode
+            </Badge>
           )}
-          {isGenerating ? "Generating..." : "Suggest reply"}
-        </Button>
+        </div>
         {aiError && (
           <p className="text-xs text-destructive">{aiError}</p>
         )}

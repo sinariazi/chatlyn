@@ -319,10 +319,33 @@ export const prisma = {
       
       return conversation
     },
-    findFirst: async (args: { where: { contactId: string; channel: Channel } }) => {
-      return Array.from(store.conversations.values()).find(
+    findFirst: async (args: { 
+      where: { 
+        contactId: string
+        channel: Channel
+        status?: { in: ConversationStatus[] }
+      }
+      orderBy?: Record<string, string>
+    }) => {
+      let conversations = Array.from(store.conversations.values()).filter(
         (c) => c.contactId === args.where.contactId && c.channel === args.where.channel
-      ) || null
+      )
+      
+      // Filter by status if provided
+      if (args.where.status?.in) {
+        conversations = conversations.filter((c) => 
+          args.where.status!.in.includes(c.status)
+        )
+      }
+      
+      // Sort if orderBy provided
+      if (args.orderBy?.updatedAt === "desc") {
+        conversations.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+      } else if (args.orderBy?.updatedAt === "asc") {
+        conversations.sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime())
+      }
+      
+      return conversations[0] || null
     },
     create: async (args: { data: Omit<Conversation, "id" | "createdAt" | "updatedAt"> & { id?: string } }) => {
       const conversation: Conversation = {
@@ -348,7 +371,12 @@ export const prisma = {
     count: async () => store.conversations.size,
   },
   message: {
-    findMany: async (args?: { where?: { conversationId?: string; createdAt?: { gte?: Date } }; orderBy?: Record<string, string>; select?: Record<string, boolean> }) => {
+    findMany: async (args?: { 
+      where?: { conversationId?: string; createdAt?: { gte?: Date } }
+      orderBy?: Record<string, string>
+      select?: Record<string, boolean>
+      take?: number
+    }) => {
       let messages = Array.from(store.messages.values())
       if (args?.where?.conversationId) {
         messages = messages.filter((m) => m.conversationId === args.where?.conversationId)
@@ -361,6 +389,12 @@ export const prisma = {
       } else if (args?.orderBy?.createdAt === "desc") {
         messages.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       }
+      
+      // Apply take limit
+      if (args?.take) {
+        messages = messages.slice(0, args.take)
+      }
+      
       return messages
     },
     findUnique: async (args: { where: { id: string }; include?: { conversation?: boolean } }) => {
@@ -409,16 +443,61 @@ export const prisma = {
     },
   },
   rule: {
-    findMany: async (args?: { where?: { isActive?: boolean }; orderBy?: Record<string, string> }) => {
+    findMany: async (args?: { 
+      where?: { 
+        isActive?: boolean
+        trigger?: { in: RuleTrigger[] }
+      }
+      orderBy?: Record<string, string> | Array<Record<string, string>>
+      select?: Record<string, boolean>
+    }) => {
       let rules = Array.from(store.rules.values())
       if (args?.where?.isActive !== undefined) {
         rules = rules.filter((r) => r.isActive === args.where?.isActive)
       }
-      if (args?.orderBy?.priority === "desc") {
-        rules.sort((a, b) => b.priority - a.priority)
-      } else if (args?.orderBy?.createdAt === "desc") {
-        rules.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      if (args?.where?.trigger?.in) {
+        rules = rules.filter((r) => args.where!.trigger!.in.includes(r.trigger))
       }
+      
+      // Handle orderBy (single object or array)
+      if (args?.orderBy) {
+        const orderByArray = Array.isArray(args.orderBy) ? args.orderBy : [args.orderBy]
+        
+        rules.sort((a, b) => {
+          for (const orderBy of orderByArray) {
+            for (const [key, direction] of Object.entries(orderBy)) {
+              const aVal = a[key as keyof typeof a]
+              const bVal = b[key as keyof typeof b]
+              
+              if (aVal !== bVal) {
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
+                  return direction === "desc" ? bVal - aVal : aVal - bVal
+                }
+                if (aVal instanceof Date && bVal instanceof Date) {
+                  return direction === "desc" 
+                    ? bVal.getTime() - aVal.getTime() 
+                    : aVal.getTime() - bVal.getTime()
+                }
+              }
+            }
+          }
+          return 0
+        })
+      }
+      
+      // Handle select
+      if (args?.select) {
+        return rules.map((rule) => {
+          const selected: any = {}
+          for (const key of Object.keys(args.select!)) {
+            if (args.select![key]) {
+              selected[key] = rule[key as keyof Rule]
+            }
+          }
+          return selected
+        })
+      }
+      
       return rules
     },
     findUnique: async (args: { where: { id: string } }) => {
@@ -449,7 +528,13 @@ export const prisma = {
     count: async () => store.rules.size,
   },
   event: {
-    findMany: async (args?: { where?: { type?: EventType | { in: EventType[] } }; orderBy?: Record<string, string> }) => {
+    findMany: async (args?: { 
+      where?: { 
+        type?: EventType | { in: EventType[] }
+        ruleId?: string | null
+      }
+      orderBy?: Record<string, string>
+    }) => {
       let events = Array.from(store.events.values())
       if (args?.where?.type) {
         if (typeof args.where.type === "string") {
@@ -458,32 +543,54 @@ export const prisma = {
           events = events.filter((e) => (args.where?.type as { in: EventType[] }).in.includes(e.type))
         }
       }
+      if (args?.where?.ruleId !== undefined) {
+        events = events.filter((e) => e.ruleId === args.where?.ruleId)
+      }
       if (args?.orderBy?.createdAt === "desc") {
         events.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       }
       return events
     },
-    create: async (args: { data: Omit<Event, "id" | "createdAt"> }) => {
+    create: async (args: { 
+      data: Omit<Event, "id" | "createdAt"> | {
+        type: EventType
+        conversationId?: string | null
+        ruleId?: string | null
+        payload?: Record<string, unknown> | null
+      }
+    }) => {
       const event: Event = {
         id: `evt-${Date.now()}`,
         type: args.data.type,
-        conversationId: args.data.conversationId ?? null,
-        ruleId: args.data.ruleId ?? null,
-        payload: args.data.payload ?? null,
+        conversationId: ("conversationId" in args.data ? args.data.conversationId : null) ?? null,
+        ruleId: ("ruleId" in args.data ? args.data.ruleId : null) ?? null,
+        payload: ("payload" in args.data ? args.data.payload : null) ?? null,
         createdAt: new Date(),
       }
       store.events.set(event.id, event)
       return event
     },
-    count: async (args?: { where?: { type?: EventType | { in: EventType[] } } }) => {
+    count: async (args?: { 
+      where?: { 
+        type?: EventType | { in: EventType[] }
+        ruleId?: string | null
+      }
+    }) => {
+      let events = Array.from(store.events.values())
+      
       if (args?.where?.type) {
         if (typeof args.where.type === "string") {
-          return Array.from(store.events.values()).filter((e) => e.type === args.where?.type).length
+          events = events.filter((e) => e.type === args.where.type)
         } else if ("in" in args.where.type) {
-          return Array.from(store.events.values()).filter((e) => (args.where?.type as { in: EventType[] }).in.includes(e.type)).length
+          events = events.filter((e) => (args.where?.type as { in: EventType[] }).in.includes(e.type))
         }
       }
-      return store.events.size
+      
+      if (args?.where?.ruleId !== undefined) {
+        events = events.filter((e) => e.ruleId === args.where?.ruleId)
+      }
+      
+      return events.length
     },
     groupBy: async (args: { by: string[]; _count: boolean }) => {
       const events = Array.from(store.events.values())

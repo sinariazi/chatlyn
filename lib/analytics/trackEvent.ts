@@ -1,7 +1,6 @@
 "use server"
 
-import { prisma } from "@/lib/db"
-import type { EventType } from "@prisma/client"
+import { prisma, type EventType } from "@/lib/db"
 
 export interface TrackEventPayload {
   messageId?: string
@@ -16,8 +15,8 @@ export interface TrackEventPayload {
 
 interface TrackEventInput {
   type: EventType
-  conversationId?: string
-  ruleId?: string
+  conversationId?: string | null
+  ruleId?: string | null
   payload?: TrackEventPayload
 }
 
@@ -31,8 +30,8 @@ export async function trackEvent({
     const event = await prisma.event.create({
       data: {
         type,
-        conversationId,
-        ruleId,
+        conversationId: conversationId ?? null,
+        ruleId: ruleId ?? null,
         payload: payload as Record<string, unknown>,
       },
     })

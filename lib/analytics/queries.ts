@@ -37,12 +37,12 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
   })
   
   const aiAssistedEvents = aiAssistedEventsAll.filter(
-    (e) => e.payload.source === "manual"
+    (e) => e.payload && typeof e.payload === "object" && "source" in e.payload && e.payload.source === "manual"
   ).length
 
   // Get automated replies (AI_RESPONSE_GENERATED events with source: "rule")
   const automatedEvents = aiAssistedEventsAll.filter(
-    (e) => e.payload.source === "rule"
+    (e) => e.payload && typeof e.payload === "object" && "source" in e.payload && e.payload.source === "rule"
   ).length
 
   // Calculate percentages
@@ -145,9 +145,9 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
     _count: { id: true },
   })
 
-  const messagesByChannel = channelCounts.map((c) => ({
-    channel: c.channel,
-    count: c._count.id,
+  const messagesByChannel = channelCounts.map((c: any) => ({
+    channel: String(c.channel),
+    count: Number(c._count?.id ?? 0),
   }))
 
   // Get rule performance
