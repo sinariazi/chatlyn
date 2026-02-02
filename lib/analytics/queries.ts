@@ -30,27 +30,20 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
     where: { direction: "OUTGOING" },
   })
 
-  // Get AI-assisted replies (AI_RESPONSE_GENERATED events with source: "manual")
-  const aiAssistedEvents = await prisma.event.count({
-    where: {
-      type: "AI_RESPONSE_GENERATED",
-      payload: {
-        path: ["source"],
-        equals: "manual",
-      },
-    },
+  // Get AI-assisted replies (AI_RESPONSE_GENERATED events)
+  // In mock: filter manually by checking payload.source
+  const aiAssistedEventsAll = await prisma.event.findMany({
+    where: { type: "AI_RESPONSE_GENERATED" },
   })
+  
+  const aiAssistedEvents = aiAssistedEventsAll.filter(
+    (e) => e.payload.source === "manual"
+  ).length
 
   // Get automated replies (AI_RESPONSE_GENERATED events with source: "rule")
-  const automatedEvents = await prisma.event.count({
-    where: {
-      type: "AI_RESPONSE_GENERATED",
-      payload: {
-        path: ["source"],
-        equals: "rule",
-      },
-    },
-  })
+  const automatedEvents = aiAssistedEventsAll.filter(
+    (e) => e.payload.source === "rule"
+  ).length
 
   // Calculate percentages
   const aiAssistedPercentage = messagesSent > 0 
