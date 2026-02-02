@@ -48,7 +48,7 @@ export async function createRule(input: CreateRuleInput) {
     const rule = await prisma.rule.create({
       data: {
         name: input.name,
-        description: input.description,
+        description: input.description ?? null,
         trigger: "KEYWORD_MATCH",
         conditions: input.conditions,
         actions: input.actions,
@@ -71,11 +71,11 @@ export async function updateRule(input: UpdateRuleInput) {
       where: { id: input.id },
       data: {
         name: input.name,
-        description: input.description,
+        description: input.description ?? null,
         conditions: input.conditions,
         actions: input.actions,
-        priority: input.priority,
-        isActive: input.isActive,
+        priority: input.priority ?? 0,
+        isActive: input.isActive ?? true,
       },
     })
 

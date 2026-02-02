@@ -434,17 +434,38 @@ export const prisma = {
   rule: {
     findMany: async (args?: { 
       where?: { isActive?: boolean }
-      orderBy?: Record<string, string>
+      orderBy?: Record<string, string> | Array<Record<string, string>>
       select?: Record<string, boolean>
     }) => {
       let rules = Array.from(store.rules.values())
       if (args?.where?.isActive !== undefined) {
         rules = rules.filter((r) => r.isActive === args.where?.isActive)
       }
-      if (args?.orderBy?.priority === "desc") {
-        rules.sort((a, b) => b.priority - a.priority)
-      } else if (args?.orderBy?.createdAt === "desc") {
-        rules.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      
+      // Handle orderBy (single object or array)
+      if (args?.orderBy) {
+        const orderByArray = Array.isArray(args.orderBy) ? args.orderBy : [args.orderBy]
+        
+        rules.sort((a, b) => {
+          for (const orderBy of orderByArray) {
+            for (const [key, direction] of Object.entries(orderBy)) {
+              const aVal = a[key as keyof typeof a]
+              const bVal = b[key as keyof typeof b]
+              
+              if (aVal !== bVal) {
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
+                  return direction === "desc" ? bVal - aVal : aVal - bVal
+                }
+                if (aVal instanceof Date && bVal instanceof Date) {
+                  return direction === "desc" 
+                    ? bVal.getTime() - aVal.getTime() 
+                    : aVal.getTime() - bVal.getTime()
+                }
+              }
+            }
+          }
+          return 0
+        })
       }
       
       // Handle select
