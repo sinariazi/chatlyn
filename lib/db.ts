@@ -1,20 +1,22 @@
 // Mock database layer for v0 environment
 // In production, replace with actual Prisma client
 
+// Enums matching Prisma schema exactly
 export type Channel = "WEB" | "WHATSAPP" | "EMAIL"
 export type Direction = "INCOMING" | "OUTGOING"
-export type ContentType = "TEXT" | "IMAGE" | "FILE" | "TEMPLATE"
+export type ContentType = "TEXT" | "IMAGE" | "FILE" | "AUDIO" | "VIDEO"
 export type ConversationStatus = "OPEN" | "CLOSED" | "PENDING" | "ARCHIVED"
-export type RuleTrigger = "MESSAGE_RECEIVED" | "KEYWORD_MATCH" | "TIME_BASED" | "CHANNEL_SPECIFIC"
-export type EventType = "MESSAGE_RECEIVED" | "MESSAGE_SENT" | "AI_RESPONSE_GENERATED" | "RULE_TRIGGERED" | "RULE_EXECUTED" | "CONVERSATION_STARTED" | "CONVERSATION_RESOLVED"
+export type RuleTrigger = "MESSAGE_RECEIVED" | "MESSAGE_SENT" | "CONVERSATION_OPENED" | "CONVERSATION_CLOSED" | "KEYWORD_MATCH" | "SCHEDULE"
+export type EventType = "MESSAGE_RECEIVED" | "MESSAGE_SENT" | "CONVERSATION_STARTED" | "CONVERSATION_RESOLVED" | "RULE_TRIGGERED" | "RULE_EXECUTED" | "AI_RESPONSE_GENERATED" | "AGENT_ASSIGNED"
 
+// Interfaces matching Prisma models exactly
 export interface Conversation {
   id: string
   contactId: string
   channel: Channel
   status: ConversationStatus
   subject: string | null
-  metadata: Record<string, unknown>
+  metadata: Record<string, unknown> | null
   createdAt: Date
   updatedAt: Date
 }
@@ -26,7 +28,7 @@ export interface Message {
   direction: Direction
   content: string
   contentType: ContentType
-  metadata: Record<string, unknown>
+  metadata: Record<string, unknown> | null
   createdAt: Date
 }
 
@@ -35,8 +37,8 @@ export interface Rule {
   name: string
   description: string | null
   trigger: RuleTrigger
-  conditions: Record<string, unknown>
-  actions: Record<string, unknown>
+  conditions: unknown // Json field in Prisma
+  actions: unknown // Json field in Prisma
   priority: number
   isActive: boolean
   createdAt: Date
@@ -48,7 +50,7 @@ export interface Event {
   type: EventType
   conversationId: string | null
   ruleId: string | null
-  payload: Record<string, unknown>
+  payload: Record<string, unknown> | null
   createdAt: Date
 }
 
@@ -72,7 +74,7 @@ function initializeStore() {
       channel: "EMAIL",
       status: "OPEN",
       subject: "Room Service Request",
-      metadata: {},
+      metadata: null,
       createdAt: new Date("2024-01-15T10:00:00Z"),
       updatedAt: new Date("2024-01-15T10:30:00Z"),
     },
@@ -82,7 +84,7 @@ function initializeStore() {
       channel: "WHATSAPP",
       status: "OPEN",
       subject: null,
-      metadata: {},
+      metadata: null,
       createdAt: new Date("2024-01-15T09:00:00Z"),
       updatedAt: new Date("2024-01-15T09:45:00Z"),
     },
@@ -92,7 +94,7 @@ function initializeStore() {
       channel: "WEB",
       status: "PENDING",
       subject: "Booking Inquiry",
-      metadata: {},
+      metadata: null,
       createdAt: new Date("2024-01-14T14:00:00Z"),
       updatedAt: new Date("2024-01-14T14:20:00Z"),
     },
@@ -107,7 +109,7 @@ function initializeStore() {
       direction: "INCOMING",
       content: "Hello, I would like to request room service for breakfast tomorrow at 8 AM.",
       contentType: "TEXT",
-      metadata: {},
+      metadata: null,
       createdAt: new Date("2024-01-15T10:00:00Z"),
     },
     {
@@ -117,7 +119,7 @@ function initializeStore() {
       direction: "OUTGOING",
       content: "Good morning! Thank you for reaching out. I'd be happy to arrange breakfast room service for you at 8 AM tomorrow. Could you please let me know your room number and any dietary preferences?",
       contentType: "TEXT",
-      metadata: {},
+      metadata: null,
       createdAt: new Date("2024-01-15T10:15:00Z"),
     },
     {
@@ -127,7 +129,7 @@ function initializeStore() {
       direction: "INCOMING",
       content: "Room 412. I'm vegetarian and would like the continental breakfast with fresh orange juice.",
       contentType: "TEXT",
-      metadata: {},
+      metadata: null,
       createdAt: new Date("2024-01-15T10:30:00Z"),
     },
     {
@@ -137,7 +139,7 @@ function initializeStore() {
       direction: "INCOMING",
       content: "Hi! What time is checkout?",
       contentType: "TEXT",
-      metadata: {},
+      metadata: null,
       createdAt: new Date("2024-01-15T09:00:00Z"),
     },
     {
@@ -147,7 +149,7 @@ function initializeStore() {
       direction: "OUTGOING",
       content: "Hello! Our standard checkout time is 11:00 AM. If you need a late checkout, please let us know and we'll do our best to accommodate you.",
       contentType: "TEXT",
-      metadata: {},
+      metadata: null,
       createdAt: new Date("2024-01-15T09:15:00Z"),
     },
     {
@@ -157,7 +159,7 @@ function initializeStore() {
       direction: "INCOMING",
       content: "Can I get a late checkout until 2 PM?",
       contentType: "TEXT",
-      metadata: {},
+      metadata: null,
       createdAt: new Date("2024-01-15T09:45:00Z"),
     },
     {
@@ -167,7 +169,7 @@ function initializeStore() {
       direction: "INCOMING",
       content: "I'm looking to book a suite for next weekend. Do you have availability?",
       contentType: "TEXT",
-      metadata: {},
+      metadata: null,
       createdAt: new Date("2024-01-14T14:00:00Z"),
     },
     {
@@ -177,7 +179,7 @@ function initializeStore() {
       direction: "OUTGOING",
       content: "Thank you for your interest! Let me check our availability for next weekend. Which dates specifically are you looking at, and how many guests will be staying?",
       contentType: "TEXT",
-      metadata: {},
+      metadata: null,
       createdAt: new Date("2024-01-14T14:20:00Z"),
     },
   ]
@@ -239,18 +241,20 @@ function initializeStore() {
     },
   ]
 
-  // Seed events
+  // Seed events - with proper payload structure for analytics
   const events: Event[] = [
-    { id: "evt-1", type: "MESSAGE_RECEIVED", conversationId: "conv-1", ruleId: null, payload: { messageId: "msg-1" }, createdAt: new Date("2024-01-15T10:00:00Z") },
-    { id: "evt-2", type: "MESSAGE_SENT", conversationId: "conv-1", ruleId: null, payload: { messageId: "msg-2" }, createdAt: new Date("2024-01-15T10:15:00Z") },
-    { id: "evt-3", type: "MESSAGE_RECEIVED", conversationId: "conv-1", ruleId: null, payload: { messageId: "msg-3" }, createdAt: new Date("2024-01-15T10:30:00Z") },
-    { id: "evt-4", type: "MESSAGE_RECEIVED", conversationId: "conv-2", ruleId: null, payload: { messageId: "msg-4" }, createdAt: new Date("2024-01-15T09:00:00Z") },
-    { id: "evt-5", type: "MESSAGE_SENT", conversationId: "conv-2", ruleId: null, payload: { messageId: "msg-5" }, createdAt: new Date("2024-01-15T09:15:00Z") },
-    { id: "evt-6", type: "MESSAGE_RECEIVED", conversationId: "conv-2", ruleId: null, payload: { messageId: "msg-6" }, createdAt: new Date("2024-01-15T09:45:00Z") },
-    { id: "evt-7", type: "MESSAGE_RECEIVED", conversationId: "conv-3", ruleId: null, payload: { messageId: "msg-7" }, createdAt: new Date("2024-01-14T14:00:00Z") },
-    { id: "evt-8", type: "MESSAGE_SENT", conversationId: "conv-3", ruleId: null, payload: { messageId: "msg-8" }, createdAt: new Date("2024-01-14T14:20:00Z") },
-    { id: "evt-9", type: "RULE_TRIGGERED", conversationId: "conv-2", ruleId: "rule-3", payload: { messageId: "msg-4" }, createdAt: new Date("2024-01-15T09:00:00Z") },
-    { id: "evt-10", type: "AI_RESPONSE_GENERATED", conversationId: "conv-1", ruleId: null, payload: { suggestionUsed: true }, createdAt: new Date("2024-01-15T10:14:00Z") },
+    { id: "evt-1", type: "MESSAGE_RECEIVED", conversationId: "conv-1", ruleId: null, payload: { messageId: "msg-1", channel: "EMAIL" }, createdAt: new Date("2024-01-15T10:00:00Z") },
+    { id: "evt-2", type: "MESSAGE_SENT", conversationId: "conv-1", ruleId: null, payload: { messageId: "msg-2", channel: "EMAIL" }, createdAt: new Date("2024-01-15T10:15:00Z") },
+    { id: "evt-3", type: "MESSAGE_RECEIVED", conversationId: "conv-1", ruleId: null, payload: { messageId: "msg-3", channel: "EMAIL" }, createdAt: new Date("2024-01-15T10:30:00Z") },
+    { id: "evt-4", type: "MESSAGE_RECEIVED", conversationId: "conv-2", ruleId: null, payload: { messageId: "msg-4", channel: "WHATSAPP" }, createdAt: new Date("2024-01-15T09:00:00Z") },
+    { id: "evt-5", type: "MESSAGE_SENT", conversationId: "conv-2", ruleId: null, payload: { messageId: "msg-5", channel: "WHATSAPP" }, createdAt: new Date("2024-01-15T09:15:00Z") },
+    { id: "evt-6", type: "MESSAGE_RECEIVED", conversationId: "conv-2", ruleId: null, payload: { messageId: "msg-6", channel: "WHATSAPP" }, createdAt: new Date("2024-01-15T09:45:00Z") },
+    { id: "evt-7", type: "MESSAGE_RECEIVED", conversationId: "conv-3", ruleId: null, payload: { messageId: "msg-7", channel: "WEB" }, createdAt: new Date("2024-01-14T14:00:00Z") },
+    { id: "evt-8", type: "MESSAGE_SENT", conversationId: "conv-3", ruleId: null, payload: { messageId: "msg-8", channel: "WEB" }, createdAt: new Date("2024-01-14T14:20:00Z") },
+    { id: "evt-9", type: "RULE_TRIGGERED", conversationId: "conv-2", ruleId: "rule-3", payload: { messageId: "msg-4", ruleName: "Checkout Info" }, createdAt: new Date("2024-01-15T09:00:30Z") },
+    { id: "evt-10", type: "RULE_EXECUTED", conversationId: "conv-2", ruleId: "rule-3", payload: { actionsExecuted: ["template_reply"] }, createdAt: new Date("2024-01-15T09:00:35Z") },
+    { id: "evt-11", type: "AI_RESPONSE_GENERATED", conversationId: "conv-1", ruleId: null, payload: { source: "manual", suggestion: "AI-assisted reply" }, createdAt: new Date("2024-01-15T10:14:00Z") },
+    { id: "evt-12", type: "AI_RESPONSE_GENERATED", conversationId: "conv-2", ruleId: "rule-3", payload: { source: "rule", reply: "Auto-reply via rule" }, createdAt: new Date("2024-01-15T09:00:40Z") },
   ]
 
   conversations.forEach((c) => store.conversations.set(c.id, c))
@@ -323,10 +327,14 @@ export const prisma = {
     create: async (args: { data: Omit<Conversation, "id" | "createdAt" | "updatedAt"> & { id?: string } }) => {
       const conversation: Conversation = {
         id: args.data.id || `conv-${Date.now()}`,
-        ...args.data,
+        contactId: args.data.contactId,
+        channel: args.data.channel,
+        status: args.data.status || "OPEN",
+        subject: args.data.subject ?? null,
+        metadata: args.data.metadata ?? null,
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as Conversation
+      }
       store.conversations.set(conversation.id, conversation)
       return conversation
     },
@@ -363,11 +371,15 @@ export const prisma = {
       }
       return message
     },
-    create: async (args: { data: Omit<Message, "id" | "createdAt" | "metadata"> & { metadata?: Record<string, unknown> } }) => {
+    create: async (args: { data: Omit<Message, "id" | "createdAt"> & { metadata?: Record<string, unknown> | null } }) => {
       const message: Message = {
         id: `msg-${Date.now()}`,
-        ...args.data,
-        metadata: args.data.metadata || {},
+        conversationId: args.data.conversationId,
+        channel: args.data.channel,
+        direction: args.data.direction,
+        content: args.data.content,
+        contentType: args.data.contentType || "TEXT",
+        metadata: args.data.metadata ?? null,
         createdAt: new Date(),
       }
       store.messages.set(message.id, message)
@@ -454,7 +466,10 @@ export const prisma = {
     create: async (args: { data: Omit<Event, "id" | "createdAt"> }) => {
       const event: Event = {
         id: `evt-${Date.now()}`,
-        ...args.data,
+        type: args.data.type,
+        conversationId: args.data.conversationId ?? null,
+        ruleId: args.data.ruleId ?? null,
+        payload: args.data.payload ?? null,
         createdAt: new Date(),
       }
       store.events.set(event.id, event)
