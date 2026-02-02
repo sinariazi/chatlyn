@@ -4,7 +4,7 @@ AI-powered multi-channel messaging platform for hospitality. Unifies conversatio
 
 ## Product Vision
 
-Replace fragmented guest communication with a single inbox. Reduce response time through AI-assisted replies and rule-based automation while maintaining the personal touch hospitality requires.
+Replace fragmented guest communication with a single, automation-first inbox that reduces response time without sacrificing hospitality tone. Reduce response time through AI-assisted replies and rule-based automation while maintaining the personal touch hospitality requires.
 
 ## Architecture Overview
 
